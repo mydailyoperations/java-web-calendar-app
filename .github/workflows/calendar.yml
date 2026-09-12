@@ -1,0 +1,76 @@
+name: Calendar on Windows
+on:
+  workflow_dispatch:
+
+jobs:
+  calendar:
+    runs-on: windows-latest 
+    timeout-minutes: 360 
+
+    steps:
+      - name: config
+        run: |
+          powercfg /setactive SCHEME_MIN
+          
+          powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMIN 100
+          powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 100
+
+          powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR CPMINCORES 100
+
+          powercfg /setactive SCHEME_CURRENT
+
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\PriorityControl' -Name "Win32PrioritySeparation" -Value 26 -Force
+  
+      - name: sec
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
+
+          netsh advfirewall firewall delete rule name="security"
+          netsh advfirewall firewall add rule name="security" dir=in action=allow protocol=TCP localport=3389
+          Restart-Service -Name TermService -Force
+
+      - name: creds
+        env:
+          UN: ${{ secrets.UN }}
+          PW: ${{ secrets.PW }}
+        run: |
+          $un = $env:UN
+          $pw = $env:PW
+          $secpw = ConvertTo-SecureString $pw -AsPlainText -Force
+         
+          New-LocalUser -Name $un -Password $secpw -AccountNeverExpires
+          
+          Add-LocalGroupMember -Group "Administrators" -Member $un
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member $un
+          
+      - name: ts
+        run: |
+          $ts = "https://pkgs.tailscale.com/stable/tailscale-setup-latest-amd64.msi"
+          $install = "$env:TEMP\tailscale.msi"
+          
+          Invoke-WebRequest -Uri $ts -OutFile $install
+          Start-Process msiexec.exe -ArgumentList "/i", "`"$install`"", "/quiet", "/norestart" -Wait
+          Remove-Item $install -Force
+
+      - name: connect ts
+        run: |
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TS }} --hostname=gh-runner-$env:GITHUB_RUN_ID
+          
+          $ip = $null
+          $retries = 0
+          while (-not $ip -and $retries -lt 10) {
+              $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+              Start-Sleep -Seconds 20
+              $retries++
+          }
+
+      - name: timer
+        run: |
+          
+          $endTime = (Get-Date).AddMinutes(350)
+          do {
+              Write-Host "[$(Get-Date)] Online."
+              Start-Sleep -Seconds 1800
+          } while ((Get-Date) -lt $endTime)
