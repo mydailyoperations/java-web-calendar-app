@@ -60,9 +60,9 @@ jobs:
           
           $ip = $null
           $retries = 0
-          while (-not $ip -and $retries -lt 5) {
+          while (-not $ip -and $retries -lt 6) {
               $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
-              Start-Sleep -Seconds 20
+              Start-Sleep -Seconds 10
               $retries++
           }
 
