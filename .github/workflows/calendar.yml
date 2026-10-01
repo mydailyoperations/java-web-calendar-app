@@ -21,7 +21,7 @@ jobs:
 
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\PriorityControl' -Name "Win32PrioritySeparation" -Value 26 -Force
   
-      - name: sec
+      - name: sec and zira
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
@@ -31,6 +31,20 @@ jobs:
           netsh advfirewall firewall add rule name="security" dir=in action=allow protocol=TCP localport=3389
           Restart-Service -Name TermService -Force
 
+          $zira = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\MSTTS_V110_enUS_ZiraM"
+
+          if (Test-Path "Registry::$zira") {
+              Set-ItemProperty `
+                  -Path "HKLM:\SOFTWARE\Microsoft\Speech\Voices" `
+                  -Name "(Default)" `
+                  -Value $zira
+          
+              Write-Host "Default speech voice changed to Microsoft Zira Desktop."
+          }
+          else {
+              Write-Host "Microsoft Zira Desktop voice was not found on this server."
+          }
+          
       - name: creds
         env:
           UN: ${{ secrets.UN }}
