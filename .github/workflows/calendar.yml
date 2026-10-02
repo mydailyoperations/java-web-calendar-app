@@ -33,17 +33,10 @@ jobs:
 
           $zira = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\MSTTS_V110_enUS_ZiraM"
 
-          if (Test-Path "Registry::$zira") {
-              Set-ItemProperty `
-                  -Path "HKLM:\SOFTWARE\Microsoft\Speech\Voices" `
-                  -Name "(Default)" `
-                  -Value $zira
-          
-              Write-Host "Default speech voice changed to Microsoft Zira Desktop."
-          }
-          else {
-              Write-Host "Microsoft Zira Desktop voice was not found on this server."
-          }
+          Set-ItemProperty `
+              -Path "HKLM:\SOFTWARE\Microsoft\Speech\Voices" `
+              -Name "(Default)" `
+              -Value $zira
           
       - name: creds
         env:
