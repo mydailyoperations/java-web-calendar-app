@@ -30,13 +30,6 @@ jobs:
           netsh advfirewall firewall delete rule name="security"
           netsh advfirewall firewall add rule name="security" dir=in action=allow protocol=TCP localport=3389
           Restart-Service -Name TermService -Force
-
-          $zira = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\MSTTS_V110_enUS_ZiraM"
-
-          Set-ItemProperty `
-              -Path "HKLM:\SOFTWARE\Microsoft\Speech\Voices" `
-              -Name "(Default)" `
-              -Value $zira
           
       - name: creds
         env:
